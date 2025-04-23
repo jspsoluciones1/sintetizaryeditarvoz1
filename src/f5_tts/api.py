@@ -19,6 +19,7 @@ from f5_tts.infer.utils_infer import (
 )
 from f5_tts.model import DiT, UNetT
 from f5_tts.model.utils import seed_everything
+from f5_tts.audio_editor import AudioEditor
 
 
 class F5TTS:
@@ -39,6 +40,7 @@ class F5TTS:
         self.hop_length = hop_length
         self.seed = -1
         self.mel_spec_type = vocoder_name
+        self.audio_editor = AudioEditor(sample_rate=target_sample_rate)
 
         # Set device
         self.device = device or (
@@ -100,6 +102,7 @@ class F5TTS:
         file_wave=None,
         file_spect=None,
         seed=-1,
+        audio_effects=None,
     ):
         if seed == -1:
             seed = random.randint(0, sys.maxsize)
@@ -127,6 +130,10 @@ class F5TTS:
             device=self.device,
         )
 
+        # Apply audio effects if specified
+        if audio_effects is not None:
+            wav = self.audio_editor.apply_effects(wav, audio_effects)
+
         if file_wave is not None:
             self.export_wav(wav, file_wave, remove_silence)
 
@@ -137,15 +144,95 @@ class F5TTS:
 
 
 if __name__ == "__main__":
+    # Ejemplo de uso básico
+    print("Inicializando F5-TTS...")
     f5tts = F5TTS()
 
-    wav, sr, spect = f5tts.infer(
-        ref_file=str(files("f5_tts").joinpath("infer/examples/basic/basic_ref_en.wav")),
-        ref_text="some call me nature, others call me mother nature.",
-        gen_text="""I don't really care what you call me. I've been a silent spectator, watching species evolve, empires rise and fall. But always remember, I am mighty and enduring. Respect me and I'll nurture you; ignore me and you shall face the consequences.""",
-        file_wave=str(files("f5_tts").joinpath("../../tests/api_out.wav")),
-        file_spect=str(files("f5_tts").joinpath("../../tests/api_out.png")),
-        seed=-1,  # random seed = -1
-    )
+    # Ejemplo 1: Voz clara y brillante
+    print("\nEjemplo 1: Voz clara y brillante")
+    audio_effects_1 = [{
+        'equalizer': {
+            '3kHz': 3,
+            '6kHz': 4,
+            '12kHz': 3
+        },
+        'compressor': {
+            'threshold': -18,
+            'ratio': 3
+        }
+    }]
 
-    print("seed :", f5tts.seed)
+    # Ejemplo 2: Voz grave y cálida
+    print("\nEjemplo 2: Voz grave y cálida")
+    audio_effects_2 = [{
+        'equalizer': {
+            '60Hz': 4,
+            '170Hz': 3,
+            '310Hz': 2
+        },
+        'reverb': 0.2
+    }]
+
+    # Ejemplo 3: Voz natural y suave
+    print("\nEjemplo 3: Voz natural y suave")
+    audio_effects_3 = [{
+        'equalizer': {
+            '600Hz': 2,
+            '1kHz': 1,
+            '3kHz': 1
+        },
+        'compressor': {
+            'threshold': -20,
+            'ratio': 2,
+            'attack': 30,
+            'release': 150
+        }
+    }]
+
+    # Ejemplo 4: Voz con eco y reverberación
+    print("\nEjemplo 4: Voz con eco y reverberación")
+    audio_effects_4 = [{
+        'reverb': 0.3,
+        'echo': 0.2,
+        'equalizer': {
+            '1kHz': 2,
+            '3kHz': 1
+        }
+    }]
+
+    # Ejemplo 5: Voz con todos los efectos
+    print("\nEjemplo 5: Voz con todos los efectos")
+    audio_effects_5 = [{
+        'equalizer': {
+            '60Hz': 2,
+            '170Hz': 1,
+            '310Hz': 1,
+            '600Hz': 1,
+            '1kHz': 2,
+            '3kHz': 2,
+            '6kHz': 1,
+            '12kHz': 1
+        },
+        'reverb': 0.2,
+        'echo': 0.1,
+        'compressor': {
+            'threshold': -20,
+            'ratio': 3,
+            'attack': 20,
+            'release': 100
+        },
+        'speed': 1.1,
+        'volume': 1.2,
+        'normalize': True
+    }]
+
+    # Generar audio con efectos
+    print("\nGenerando audio con efectos...")
+    wav, sr, spect = f5tts.infer(
+        ref_file="referencia.wav",
+        ref_text="texto de referencia",
+        gen_text="texto a generar",
+        audio_effects=audio_effects_1  # Puedes cambiar a audio_effects_2, 3, 4 o 5
+    )
+    print("¡Audio generado exitosamente!")
+
